@@ -8,6 +8,7 @@ import { displayVibeStats } from './vibe-stats.js';
 export async function showMainMenu(stats: Stats): Promise<void> {
   while (true) {
     console.clear();
+    process.stdout.write('\x1b[H');
     console.log(chalk.bold.cyan('\n╔════════════════════════════════════════════════╗'));
     console.log(chalk.bold.cyan('║    🚀 CURSOR STATS - Your AI Journey           ║'));
     console.log(chalk.bold.cyan('╚════════════════════════════════════════════════╝\n'));
@@ -115,6 +116,7 @@ async function showDeepDiveMenu(stats: Stats): Promise<void> {
 
 async function displayActivityTrends(stats: Stats): Promise<void> {
   console.clear();
+  process.stdout.write('\x1b[H');
 
   const lines: string[] = [];
   const width = 74;
@@ -181,6 +183,7 @@ async function displayActivityTrends(stats: Stats): Promise<void> {
 
 async function displayConversationPatterns(stats: Stats): Promise<void> {
   console.clear();
+  process.stdout.write('\x1b[H');
 
   const lines: string[] = [];
   const width = 74;
@@ -231,6 +234,7 @@ async function displayConversationPatterns(stats: Stats): Promise<void> {
 
 async function displayTimeMachine(stats: Stats): Promise<void> {
   console.clear();
+  process.stdout.write('\x1b[H');
 
   const lines: string[] = [];
   const width = 74;
@@ -285,6 +289,7 @@ async function displayTimeMachine(stats: Stats): Promise<void> {
 
 async function displayEngagement(stats: Stats): Promise<void> {
   console.clear();
+  process.stdout.write('\x1b[H');
 
   const lines: string[] = [];
   const width = 74;

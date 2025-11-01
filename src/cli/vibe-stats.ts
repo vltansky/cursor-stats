@@ -13,6 +13,8 @@ import {
 
 export function displayVibeStats(stats: Stats): void {
   console.clear();
+  // Move cursor to top-left (0,0) to ensure output starts from top
+  process.stdout.write('\x1b[H');
 
   const lines: string[] = [];
   const width = 74;
