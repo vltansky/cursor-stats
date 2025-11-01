@@ -10,7 +10,6 @@ import {
   formatDuration,
   formatDate,
   createProgressBar,
-  createBarChart,
   padRight,
   sectionTitle
 } from '../lib/formatters.js';
@@ -45,46 +44,6 @@ export function displayDashboard(stats: Stats): void {
   lines.push(boxLine(`  💬 Conversations         ${padRight(formatNumber(stats.overview.totalConversations), 6)}    ${isGrowing ? chalk.green('📈 Growing!') : '📊 Active'}`, width));
   lines.push(boxLine(`  💭 Messages             ${padRight(formatNumber(stats.overview.totalMessages), 7)}`, width));
   lines.push(boxLine(`  📊 Avg msgs/day            ${padRight(formatNumber(stats.overview.avgMessagesPerDay), 4)}`, width));
-  lines.push(emptyLine(width));
-
-  // Activity Trends Chart (Last 30 Days)
-  lines.push(boxLine('  Last 30 Days Activity:', width));
-  const maxMessages = Math.max(...stats.activity.last30Days.map(d => d.messages), 1);
-  const chartHeight = 8;
-  const chartWidth = 30;
-
-  for (let row = chartHeight; row >= 0; row--) {
-    const threshold = (maxMessages / chartHeight) * row;
-    let line = '  ';
-
-    if (row === chartHeight || row === chartHeight / 2 || row === 0) {
-      line += chalk.gray(`${Math.round(threshold).toString().padStart(4)}│`);
-    } else {
-      line += '     │';
-    }
-
-    stats.activity.last30Days.forEach((day, i) => {
-      if (i % Math.ceil(30 / chartWidth) === 0) {
-        if (day.messages >= threshold) {
-          line += chalk.green('▓');
-        } else {
-          line += chalk.gray('░');
-        }
-      }
-    });
-
-    lines.push(boxLine(line.trimEnd(), width));
-  }
-
-  // Activity insights
-  const currentWeekMsgs = stats.activity.last30Days.slice(-7).reduce((sum, d) => sum + d.messages, 0);
-  const previousWeekMsgs = stats.activity.last30Days.slice(-14, -7).reduce((sum, d) => sum + d.messages, 0);
-  const change = currentWeekMsgs - previousWeekMsgs;
-  const changePercent = previousWeekMsgs > 0 ? Math.round((change / previousWeekMsgs) * 100) : 0;
-
-  if (change > 0) {
-    lines.push(boxLine(`  📈 Up ${changePercent}% from previous week`, width));
-  }
   lines.push(boxLine(`  🔥 Most active: ${stats.activity.mostActiveDay.date} (${stats.activity.mostActiveDay.count} msgs)`, width));
   lines.push(emptyLine(width));
 
@@ -111,28 +70,6 @@ export function displayDashboard(stats: Stats): void {
 
   if (stats.conversations.longestSession.duration > 0) {
     lines.push(boxLine(`  Longest Session:       ${formatDuration(stats.conversations.longestSession.duration)}  🏃  (on ${formatDate(stats.conversations.longestSession.date)})`, width));
-  }
-
-  lines.push(emptyLine(width));
-
-  // Hour-by-Hour Activity
-  lines.push(boxLine('  Hour-by-Hour Activity:', width));
-
-  const hours = Array.from(stats.time.hourlyDistribution.entries()).sort((a, b) => a[0] - b[0]);
-  const maxHourly = Math.max(...hours.map(h => h[1]), 1);
-
-  // Create 6 rows of hours (4 hours per row = 24 hours total)
-  for (let row = 0; row < 6; row++) {
-    const startHour = row * 4;
-    let line = '  ';
-
-    for (let h = startHour; h < startHour + 4 && h < 24; h++) {
-      const count = stats.time.hourlyDistribution.get(h) || 0;
-      const hourStr = h.toString().padStart(2, '0');
-      const bar = createBarChart(count, maxHourly, 12);
-      line += `${hourStr} ${bar}  `;
-    }
-    lines.push(boxLine(line.trimEnd(), width));
   }
 
   lines.push(emptyLine(width));
@@ -235,7 +172,12 @@ export function displayDashboard(stats: Stats): void {
   const aiMsgLength = stats.engagement.avgAssistantMessageLength;
   const ratio = userMsgLength > 0 ? Math.round((aiMsgLength / userMsgLength) * 10) / 10 : 0;
   lines.push(boxLine(`  📝 Message Length: ${formatNumber(userMsgLength)} chars (you) vs ${formatNumber(aiMsgLength)} chars (AI)`, width));
-  lines.push(boxLine(chalk.gray(`  (AI responses are ${ratio}x longer on average)`), width));
+  const lengthComparison = ratio < 1
+    ? `AI responses are ${ratio}x shorter on average`
+    : ratio > 1
+    ? `AI responses are ${ratio}x longer on average`
+    : `AI responses are the same length on average`;
+  lines.push(boxLine(chalk.gray(`  (${lengthComparison})`), width));
   lines.push(emptyLine(width));
 
   // Vibe-Coding Snapshot Section
@@ -533,11 +475,13 @@ function getAchievements(stats: Stats): Achievement[] {
 function getFunFacts(stats: Stats): string[] {
   const facts: string[] = [];
 
-  // Character count to pages
-  const totalChars = stats.overview.userMessages * stats.engagement.avgUserMessageLength;
+  // Character count to pages (both user and AI)
+  const userChars = stats.overview.userMessages * stats.engagement.avgUserMessageLength;
+  const aiChars = stats.overview.assistantMessages * stats.engagement.avgAssistantMessageLength;
+  const totalChars = userChars + aiChars;
   const pages = Math.round(totalChars / 1800); // ~1800 chars per page
   if (pages > 10) {
-    facts.push(`You've typed enough to fill ${formatNumber(pages)} pages of a novel 📖`);
+    facts.push(`Your conversations would fill ${formatNumber(pages)} pages of a novel 📖`);
   }
 
   // AI response length

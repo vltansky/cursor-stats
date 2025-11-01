@@ -59,7 +59,7 @@ Examples:
 
   console.clear();
   console.log(chalk.bold.cyan('\n╔════════════════════════════════════════════════╗'));
-  console.log(chalk.bold.cyan('║         🚀 CURSOR STATS ANALYZER v1.0          ║'));
+  console.log(chalk.bold.cyan('║         🚀 CURSOR STATS ANALYZER               ║'));
   console.log(chalk.bold.cyan('╚════════════════════════════════════════════════╝\n'));
 
   const spinner = ora('Loading your Cursor data...').start();

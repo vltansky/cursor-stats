@@ -762,7 +762,6 @@ function calculateActivityStats(conversations: Conversation[], messages: Message
   });
 
   const sortedDays = Array.from(messagesPerDay.entries()).sort((a, b) => b[1] - a[1]);
-  const mostActiveDayEntry = sortedDays[0] || ['', 0];
   const leastActiveDayEntry = sortedDays.length > 0 ? sortedDays[sortedDays.length - 1] : ['', 0];
 
   const weekdayDistribution = new Map<string, number>();
@@ -788,20 +787,37 @@ function calculateActivityStats(conversations: Conversation[], messages: Message
   const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
   const last30Days: Array<{ date: string; messages: number; conversations: number }> = [];
 
+  // Build messages per day map for last 30 days only
+  const messagesLast30Days = new Map<string, number>();
+  messages.forEach(m => {
+    if (m.timestamp >= thirtyDaysAgo) {
+      const date = startOfDay(new Date(m.timestamp)).toISOString().split('T')[0];
+      messagesLast30Days.set(date, (messagesLast30Days.get(date) || 0) + 1);
+    }
+  });
+
   for (let i = 29; i >= 0; i--) {
     const date = new Date(now - (i * 24 * 60 * 60 * 1000));
     const dateStr = startOfDay(date).toISOString().split('T')[0];
     last30Days.push({
       date: dateStr,
-      messages: messagesPerDay.get(dateStr) || 0,
+      messages: messagesLast30Days.get(dateStr) || 0,
       conversations: conversationsPerDay.get(dateStr) || 0
     });
   }
 
+  // Find most active day from last 30 days only (exclude days with 0 messages)
+  const mostActiveDayEntry = last30Days
+    .filter(day => day.messages > 0)
+    .reduce((max, day) =>
+      day.messages > max.messages ? day : max,
+      { date: '', messages: 0 }
+    );
+
   return {
     messagesPerDay,
     conversationsPerDay,
-    mostActiveDay: { date: mostActiveDayEntry[0] as string, count: mostActiveDayEntry[1] as number },
+    mostActiveDay: { date: mostActiveDayEntry.date, count: mostActiveDayEntry.messages },
     leastActiveDay: { date: leastActiveDayEntry[0] as string, count: leastActiveDayEntry[1] as number },
     last30Days,
     weekdayDistribution,
