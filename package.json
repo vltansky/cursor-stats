@@ -1,6 +1,6 @@
 {
   "name": "cursor-stats",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Interactive CLI for analyzing your Cursor IDE usage statistics",
   "type": "module",
   "bin": {
@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node bin/cursor-stats.js",
-    "dev": "tsc && node bin/cursor-stats.js"
+    "dev": "tsc && node bin/cursor-stats.js",
+    "analyze-words": "node scripts/analyze-words.ts"
   },
   "keywords": [
     "cursor",
