@@ -44,7 +44,9 @@ export function displayDashboard(stats: Stats): void {
   lines.push(boxLine(`  💬 Conversations         ${padRight(formatNumber(stats.overview.totalConversations), 6)}    ${isGrowing ? chalk.green('📈 Growing!') : '📊 Active'}`, width));
   lines.push(boxLine(`  💭 Messages             ${padRight(formatNumber(stats.overview.totalMessages), 7)}`, width));
   lines.push(boxLine(`  📊 Avg msgs/day            ${padRight(formatNumber(stats.overview.avgMessagesPerDay), 4)}`, width));
-  lines.push(boxLine(`  🔥 Most active: ${stats.activity.mostActiveDay.date} (${stats.activity.mostActiveDay.count} msgs)`, width));
+
+  const mostActiveDayConvs = stats.activity.conversationsPerDay.get(stats.activity.mostActiveDay.date) || 0;
+  lines.push(boxLine(`  🔥 Most active: ${stats.activity.mostActiveDay.date} (${stats.activity.mostActiveDay.count} msgs, ${mostActiveDayConvs} convs)`, width));
   lines.push(emptyLine(width));
 
   // Vibe-Coding Rhythm Section

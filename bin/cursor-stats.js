@@ -12,11 +12,15 @@ if (majorVersion < 18) {
 }
 
 // Import and run
-import('../dist/index.js').catch(err => {
-  console.error('\x1b[31m❌ Failed to start cursor-stats:\x1b[0m');
-  console.error(err.message);
-  if (err.stack) {
-    console.error('\n' + err.stack);
-  }
-  process.exit(1);
-});
+import('../dist/index.js')
+  .then(() => {
+    // Module loaded successfully (main() runs automatically)
+  })
+  .catch(err => {
+    console.error('\x1b[31m❌ Failed to start cursor-stats:\x1b[0m');
+    console.error(err.message);
+    if (err.stack) {
+      console.error('\n' + err.stack);
+    }
+    process.exit(1);
+  });

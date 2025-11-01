@@ -125,7 +125,8 @@ export async function getAllConversations(): Promise<Conversation[]> {
           const composerId = rawConv.composerId;
           const headers = rawConv.fullConversationHeadersOnly || [];
 
-          for (const header of headers) {
+          for (let i = 0; i < headers.length; i++) {
+            const header = headers[i];
             if (header.bubbleId) {
               const bubbleKey = `bubbleId:${composerId}:${header.bubbleId}`;
 
@@ -137,9 +138,21 @@ export async function getAllConversations(): Promise<Conversation[]> {
                   const bubbleValue = bubbleResult[0].values[0][0] as string;
                   const bubble = JSON.parse(bubbleValue);
                   if (bubble.text) {
+                    const createdAt = rawConv.createdAt || conversationTimestamp;
+                    const lastUpdatedAt = rawConv.lastUpdatedAt || conversationTimestamp;
+                    const duration = lastUpdatedAt - createdAt;
+
+                    let messageTimestamp: number;
+                    if (headers.length === 1) {
+                      messageTimestamp = createdAt;
+                    } else {
+                      const progress = i / (headers.length - 1);
+                      messageTimestamp = createdAt + (duration * progress);
+                    }
+
                     messages.push({
                       text: bubble.text,
-                      timestamp: conversationTimestamp,
+                      timestamp: messageTimestamp,
                       type: header.type
                     });
                   }

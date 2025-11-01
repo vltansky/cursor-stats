@@ -1,16 +1,22 @@
 {
   "name": "cursor-stats",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Interactive CLI for analyzing your Cursor IDE usage statistics",
   "type": "module",
   "bin": {
     "cursor-stats": "./bin/cursor-stats.js"
   },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "node bin/cursor-stats.js",
     "dev": "tsc && node bin/cursor-stats.js",
-    "analyze-words": "node scripts/analyze-words.ts"
+    "analyze-words": "node scripts/analyze-words.ts",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "cursor",
