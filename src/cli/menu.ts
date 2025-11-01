@@ -309,9 +309,6 @@ async function displayEngagement(stats: Stats): Promise<void> {
   lines.push('║  ' + chalk.bold.white('Context Usage:') + ' '.repeat(width - 17) + '║');
   lines.push('║    Conversations with Context:    ' + chalk.bold(`${stats.engagement.conversationsWithContext} (${stats.engagement.contextPercentage}%)`) + ' '.repeat(width - 47 - stats.engagement.conversationsWithContext.toString().length - stats.engagement.contextPercentage.toString().length) + '║');
   lines.push('║' + ' '.repeat(width) + '║');
-  lines.push('║  ' + chalk.bold.white('Agentic Mode:') + ' '.repeat(width - 16) + '║');
-  lines.push('║    Agentic Conversations:         ' + chalk.bold(`${stats.engagement.agenticConversations} (${stats.engagement.agenticPercentage}%)`) + ' '.repeat(width - 47 - stats.engagement.agenticConversations.toString().length - stats.engagement.agenticPercentage.toString().length) + '║');
-  lines.push('║' + ' '.repeat(width) + '║');
   lines.push('╚' + '═'.repeat(width) + '╝');
 
   console.log(lines.join('\n'));

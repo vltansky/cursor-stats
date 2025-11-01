@@ -100,11 +100,6 @@ export function displayDashboard(stats: Stats): void {
   lines.push(boxLine('  ' + '━'.repeat(70), width));
   lines.push(emptyLine(width));
 
-  const agenticBar = createProgressBar(stats.engagement.agenticPercentage, 100, 20);
-  lines.push(boxLine(`  Agentic Mode:      ${agenticBar}  ${stats.engagement.agenticPercentage}%`, width));
-  lines.push(boxLine(chalk.gray(`  (AI working autonomously vs chat-only)`), width));
-  lines.push(emptyLine(width));
-
   const oneShotBar = createProgressBar(stats.conversations.oneShotPercentage, 100, 20);
   lines.push(boxLine(`  One-Shot Sessions: ${oneShotBar}  ${stats.conversations.oneShotPercentage}%`, width));
   lines.push(boxLine(chalk.gray(`  (Quick Q&A vs back-and-forth discussion)`), width));
@@ -250,18 +245,10 @@ function getAchievements(stats: Stats): Achievement[] {
     });
   }
 
-  if (stats.engagement.agenticPercentage > 10) {
-    achievements.push({
-      emoji: '🤖',
-      name: 'AI Whisperer',
-      description: `${stats.engagement.agenticPercentage}% AI acting autonomously (Composer, edits)`
-    });
-  }
-
   // Pushup achievement (Claude being too agreeable)
   if (stats.pushups.allTime >= 500) {
     achievements.push({
-      emoji: '💪',
+      emoji: '😂',
       name: 'Claude Agrees A Lot',
       description: `Claude said "you're right" ${stats.pushups.allTime} times 😅`
     });
