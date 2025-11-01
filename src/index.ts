@@ -66,7 +66,7 @@ Examples:
 
   try {
     // Load conversations from database
-    const conversations = getAllConversations();
+    const conversations = await getAllConversations();
 
     if (conversations.length === 0) {
       spinner.fail(chalk.red('No conversations found in your Cursor database!'));

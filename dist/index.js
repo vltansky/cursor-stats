@@ -55,7 +55,7 @@ Examples:
     const spinner = ora('Loading your Cursor data...').start();
     try {
         // Load conversations from database
-        const conversations = getAllConversations();
+        const conversations = await getAllConversations();
         if (conversations.length === 0) {
             spinner.fail(chalk.red('No conversations found in your Cursor database!'));
             console.log(chalk.yellow('\nMake sure you have used Cursor IDE and have some chat history.'));

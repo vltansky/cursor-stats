@@ -11,6 +11,6 @@ export interface Conversation {
     isAgentic: boolean;
     hasContext: boolean;
 }
-export declare function getAllConversations(): Conversation[];
-export declare function getAssistantMessages(): Message[];
-export declare function getUserMessages(): Message[];
+export declare function getAllConversations(): Promise<Conversation[]>;
+export declare function getAssistantMessages(): Promise<Message[]>;
+export declare function getUserMessages(): Promise<Message[]>;

@@ -1,7 +1,7 @@
-import Database from 'better-sqlite3';
+import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 import { homedir } from 'os';
 import { join } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 
 export interface Message {
   text: string;
@@ -62,28 +62,44 @@ function isModernConversation(conversation: any): boolean {
     Array.isArray(conversation.fullConversationHeadersOnly);
 }
 
-export function getAllConversations(): Conversation[] {
+async function openDatabase(): Promise<SqlJsDatabase> {
   const dbPath = getCursorDatabasePath();
 
   if (!existsSync(dbPath)) {
     throw new Error(`Cursor database not found at: ${dbPath}`);
   }
 
-  const db = new Database(dbPath, { readonly: true });
+  const SQL = await initSqlJs();
+  const buffer = readFileSync(dbPath);
+  const db = new SQL.Database(buffer);
+
+  return db;
+}
+
+export async function getAllConversations(): Promise<Conversation[]> {
+  const db = await openDatabase();
 
   try {
-    const query = db.prepare(`
+    const query = `
       SELECT value FROM cursorDiskKV
       WHERE key LIKE 'composerData:%'
       AND length(value) > 1000
-    `);
+    `;
 
-    const rows = query.all() as Array<{ value: string }>;
+    const result = db.exec(query);
     const conversations: Conversation[] = [];
+
+    if (result.length === 0 || !result[0].values) {
+      return conversations;
+    }
+
+    // result[0].values is an array of rows, each row is an array of column values
+    const rows = result[0].values;
 
     for (const row of rows) {
       try {
-        const rawConv = JSON.parse(row.value) as RawConversation;
+        const value = row[0] as string; // First (and only) column is 'value'
+        const rawConv = JSON.parse(value) as RawConversation;
         const messages: Message[] = [];
         const conversationTimestamp = rawConv.createdAt || rawConv.lastUpdatedAt || Date.now();
 
@@ -114,11 +130,12 @@ export function getAllConversations(): Conversation[] {
               const bubbleKey = `bubbleId:${composerId}:${header.bubbleId}`;
 
               try {
-                const bubbleQuery = db.prepare('SELECT value FROM cursorDiskKV WHERE key = ?');
-                const bubbleRow = bubbleQuery.get(bubbleKey) as { value: string } | undefined;
+                const bubbleQuery = `SELECT value FROM cursorDiskKV WHERE key = '${bubbleKey.replace(/'/g, "''")}'`;
+                const bubbleResult = db.exec(bubbleQuery);
 
-                if (bubbleRow) {
-                  const bubble = JSON.parse(bubbleRow.value);
+                if (bubbleResult.length > 0 && bubbleResult[0].values.length > 0) {
+                  const bubbleValue = bubbleResult[0].values[0][0] as string;
+                  const bubble = JSON.parse(bubbleValue);
                   if (bubble.text) {
                     messages.push({
                       text: bubble.text,
@@ -155,8 +172,8 @@ export function getAllConversations(): Conversation[] {
   }
 }
 
-export function getAssistantMessages(): Message[] {
-  const conversations = getAllConversations();
+export async function getAssistantMessages(): Promise<Message[]> {
+  const conversations = await getAllConversations();
   const messages: Message[] = [];
 
   for (const conv of conversations) {
@@ -170,8 +187,8 @@ export function getAssistantMessages(): Message[] {
   return messages;
 }
 
-export function getUserMessages(): Message[] {
-  const conversations = getAllConversations();
+export async function getUserMessages(): Promise<Message[]> {
+  const conversations = await getAllConversations();
   const messages: Message[] = [];
 
   for (const conv of conversations) {
