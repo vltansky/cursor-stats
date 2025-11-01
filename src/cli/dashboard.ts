@@ -38,10 +38,54 @@ export function displayDashboard(stats: Stats): void {
   lines.push(boxLine('  ' + '━'.repeat(70), width));
   lines.push(emptyLine(width));
 
-  lines.push(boxLine(`  💬 Conversations         ${padRight(formatNumber(stats.overview.totalConversations), 6)}    ${chalk.green('📈')} ${stats.activity.last30Days[29].conversations > stats.activity.last30Days[0].conversations ? 'Growing!' : 'Active'}`, width));
-  lines.push(boxLine(`  💭 Messages             ${padRight(formatNumber(stats.overview.totalMessages), 7)}    ${chalk.green('💪')} Impressive!`, width));
+  const currentWeekTotal = stats.activity.last30Days.slice(-7).reduce((sum, d) => sum + d.conversations, 0);
+  const previousWeekTotal = stats.activity.last30Days.slice(-14, -7).reduce((sum, d) => sum + d.conversations, 0);
+  const isGrowing = currentWeekTotal > previousWeekTotal;
+
+  lines.push(boxLine(`  💬 Conversations         ${padRight(formatNumber(stats.overview.totalConversations), 6)}    ${isGrowing ? chalk.green('📈 Growing!') : '📊 Active'}`, width));
+  lines.push(boxLine(`  💭 Messages             ${padRight(formatNumber(stats.overview.totalMessages), 7)}`, width));
   lines.push(boxLine(`  📊 Avg msgs/day            ${padRight(formatNumber(stats.overview.avgMessagesPerDay), 4)}`, width));
-  lines.push(boxLine(`  🤖 AI Help Ratio          ${stats.overview.responseRatio}x    ${chalk.gray('(responses per question)')}`, width));
+  lines.push(emptyLine(width));
+
+  // Activity Trends Chart (Last 30 Days)
+  lines.push(boxLine('  Last 30 Days Activity:', width));
+  const maxMessages = Math.max(...stats.activity.last30Days.map(d => d.messages), 1);
+  const chartHeight = 8;
+  const chartWidth = 30;
+
+  for (let row = chartHeight; row >= 0; row--) {
+    const threshold = (maxMessages / chartHeight) * row;
+    let line = '  ';
+
+    if (row === chartHeight || row === chartHeight / 2 || row === 0) {
+      line += chalk.gray(`${Math.round(threshold).toString().padStart(4)}│`);
+    } else {
+      line += '     │';
+    }
+
+    stats.activity.last30Days.forEach((day, i) => {
+      if (i % Math.ceil(30 / chartWidth) === 0) {
+        if (day.messages >= threshold) {
+          line += chalk.green('▓');
+        } else {
+          line += chalk.gray('░');
+        }
+      }
+    });
+
+    lines.push(boxLine(line.trimEnd(), width));
+  }
+
+  // Activity insights
+  const currentWeekMsgs = stats.activity.last30Days.slice(-7).reduce((sum, d) => sum + d.messages, 0);
+  const previousWeekMsgs = stats.activity.last30Days.slice(-14, -7).reduce((sum, d) => sum + d.messages, 0);
+  const change = currentWeekMsgs - previousWeekMsgs;
+  const changePercent = previousWeekMsgs > 0 ? Math.round((change / previousWeekMsgs) * 100) : 0;
+
+  if (change > 0) {
+    lines.push(boxLine(`  📈 Up ${changePercent}% from previous week`, width));
+  }
+  lines.push(boxLine(`  🔥 Most active: ${stats.activity.mostActiveDay.date} (${stats.activity.mostActiveDay.count} msgs)`, width));
   lines.push(emptyLine(width));
 
   // Vibe-Coding Rhythm Section
@@ -75,15 +119,14 @@ export function displayDashboard(stats: Stats): void {
   lines.push(boxLine('  Hour-by-Hour Activity:', width));
 
   const hours = Array.from(stats.time.hourlyDistribution.entries()).sort((a, b) => a[0] - b[0]);
-  const maxHourly = Math.max(...hours.map(h => h[1]));
+  const maxHourly = Math.max(...hours.map(h => h[1]), 1);
 
-  // Create 3 rows of hours (8 hours per row)
-  for (let row = 0; row < 3; row++) {
-    const startHour = row * 8;
-    const endHour = startHour + 4;
+  // Create 6 rows of hours (4 hours per row = 24 hours total)
+  for (let row = 0; row < 6; row++) {
+    const startHour = row * 4;
     let line = '  ';
 
-    for (let h = startHour; h < endHour; h++) {
+    for (let h = startHour; h < startHour + 4 && h < 24; h++) {
       const count = stats.time.hourlyDistribution.get(h) || 0;
       const hourStr = h.toString().padStart(2, '0');
       const bar = createBarChart(count, maxHourly, 12);
@@ -91,6 +134,24 @@ export function displayDashboard(stats: Stats): void {
     }
     lines.push(boxLine(line.trimEnd(), width));
   }
+
+  lines.push(emptyLine(width));
+
+  // Day of Week Breakdown
+  lines.push(boxLine('  Day of Week Breakdown:', width));
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const dayEmojis: Record<string, string> = {
+    'Monday': '💼', 'Tuesday': '🔥', 'Wednesday': '💚', 'Thursday': '⚡',
+    'Friday': '🎉', 'Saturday': '😴', 'Sunday': '🌴'
+  };
+  const maxDayCount = Math.max(...days.map(d => stats.time.dayOfWeekDistribution.get(d) || 0), 1);
+
+  days.forEach(day => {
+    const count = stats.time.dayOfWeekDistribution.get(day) || 0;
+    const bar = createProgressBar(count, maxDayCount, 20);
+    const percentage = maxDayCount > 0 ? Math.round((count / maxDayCount) * 100) : 0;
+    lines.push(boxLine(`  ${padRight(day, 12)} ${bar}  ${percentage}%  ${dayEmojis[day] || ''}`, width));
+  });
 
   lines.push(emptyLine(width));
 
@@ -107,6 +168,74 @@ export function displayDashboard(stats: Stats): void {
 
   lines.push(boxLine(`  📊 ${formatNumber(stats.conversations.oneShotConversations)} quick Q&As  •  ${formatNumber(stats.conversations.multiShotConversations)} discussions`, width));
   lines.push(boxLine(`  🎯 Avg ${stats.engagement.messagesPerConversation.user} msgs to get answer`, width));
+  lines.push(emptyLine(width));
+
+  // Conversation Length Distribution
+  const total = stats.conversations.lengthDistribution.quick +
+                stats.conversations.lengthDistribution.short +
+                stats.conversations.lengthDistribution.medium +
+                stats.conversations.lengthDistribution.epic;
+
+  if (total > 0) {
+    lines.push(boxLine('  Conversation Length Distribution:', width));
+    const distributions = [
+      { label: 'Quick (1-5 msgs)', value: stats.conversations.lengthDistribution.quick },
+      { label: 'Short (6-20)', value: stats.conversations.lengthDistribution.short },
+      { label: 'Medium (21-50)', value: stats.conversations.lengthDistribution.medium },
+      { label: 'Epic (50+)', value: stats.conversations.lengthDistribution.epic }
+    ];
+
+    const maxDist = Math.max(...distributions.map(d => d.value), 1);
+    distributions.forEach(({ label, value }) => {
+      const bar = createProgressBar(value, maxDist, 20);
+      const percentage = Math.round((value / total) * 100);
+      lines.push(boxLine(`  ${padRight(label, 18)} ${bar}  ${percentage}%`, width));
+    });
+    lines.push(emptyLine(width));
+  }
+
+  // Conversation length breakdowns
+  if (stats.conversations.twoTurnConversations > 0) {
+    const twoTurnPct = Math.round((stats.conversations.twoTurnConversations / stats.overview.totalConversations) * 100);
+    lines.push(boxLine(`  🔄 Quick Turn: ${formatNumber(stats.conversations.twoTurnConversations)} conversations (${twoTurnPct}%) - exactly 2 messages`, width));
+  }
+
+  if (stats.conversations.extendedConversations > 0) {
+    const extendedPct = Math.round((stats.conversations.extendedConversations / stats.overview.totalConversations) * 100);
+    lines.push(boxLine(`  📚 Extended: ${formatNumber(stats.conversations.extendedConversations)} conversations (${extendedPct}%) - >10 messages`, width));
+  }
+
+  if (stats.conversations.marathonConversations > 0) {
+    const marathonPct = Math.round((stats.conversations.marathonConversations / stats.overview.totalConversations) * 100);
+    lines.push(boxLine(`  🏃 Marathon: ${formatNumber(stats.conversations.marathonConversations)} conversations (${marathonPct}%) - >50 messages`, width));
+  }
+
+  if (stats.conversations.twoTurnConversations > 0 || stats.conversations.extendedConversations > 0 || stats.conversations.marathonConversations > 0) {
+    lines.push(emptyLine(width));
+  }
+
+  // Response time and session duration
+  if (stats.conversations.avgTimeBetweenTurns > 0) {
+    const responseTime = stats.conversations.avgTimeBetweenTurns < 1
+      ? `${Math.round(stats.conversations.avgTimeBetweenTurns * 60)}s`
+      : `${Math.round(stats.conversations.avgTimeBetweenTurns)}min`;
+    lines.push(boxLine(`  ⚡ Response Speed: ${responseTime} avg between messages`, width));
+  }
+
+  if (stats.conversations.avgSessionDuration > 0) {
+    lines.push(boxLine(`  ⏱️  Session Duration: ${Math.round(stats.conversations.avgSessionDuration * 10) / 10}h avg per conversation`, width));
+  }
+
+  if (stats.conversations.multiDayConversations > 0) {
+    lines.push(boxLine(`  🔄 Multi-day Conversations: ${formatNumber(stats.conversations.multiDayConversations)} (${Math.round((stats.conversations.multiDayConversations / stats.overview.totalConversations) * 100)}%)`, width));
+  }
+
+  // Message length comparison
+  const userMsgLength = stats.engagement.avgUserMessageLength;
+  const aiMsgLength = stats.engagement.avgAssistantMessageLength;
+  const ratio = userMsgLength > 0 ? Math.round((aiMsgLength / userMsgLength) * 10) / 10 : 0;
+  lines.push(boxLine(`  📝 Message Length: ${formatNumber(userMsgLength)} chars (you) vs ${formatNumber(aiMsgLength)} chars (AI)`, width));
+  lines.push(boxLine(chalk.gray(`  (AI responses are ${ratio}x longer on average)`), width));
   lines.push(emptyLine(width));
 
   // Vibe-Coding Snapshot Section
@@ -146,11 +275,6 @@ export function displayDashboard(stats: Stats): void {
                      stats.communication.direct > stats.communication.polite ? `👑 Direct` :
                      stats.communication.collaborative > stats.communication.polite ? `🤝 Collaborative` : `⚖️ Balanced`;
   lines.push(boxLine(`  Communication:     ${commStyle}`, width));
-
-  // Learning
-  if (stats.learning.questionsAsked > 0) {
-    lines.push(boxLine(`  Questions Asked:   ${stats.learning.questionsAsked}  💡`, width));
-  }
 
   lines.push(emptyLine(width));
 
@@ -213,11 +337,17 @@ function getAchievements(stats: Stats): Achievement[] {
   }
 
   // Night owl vs early bird
-  if (stats.time.nightOwlScore < 15) {
+  // Calculate morning score (5am-10am)
+  const morningHours = [5, 6, 7, 8, 9];
+  const morningMessages = morningHours.reduce((sum, hour) => sum + (stats.time.hourlyDistribution.get(hour) || 0), 0);
+  const totalMessages = Array.from(stats.time.hourlyDistribution.values()).reduce((a, b) => a + b, 0);
+  const morningScore = totalMessages > 0 ? Math.round((morningMessages / totalMessages) * 100) : 0;
+
+  if (morningScore >= 20) {
     achievements.push({
       emoji: '🌅',
       name: 'Early Bird',
-      description: `${100 - stats.time.nightOwlScore}% of coding during daytime`
+      description: `${morningScore}% of coding during morning hours (5am-10am)`
     });
   } else if (stats.time.nightOwlScore > 25) {
     achievements.push({
@@ -263,11 +393,11 @@ function getAchievements(stats: Stats): Achievement[] {
   }
 
   // Emotional achievements
-  if (stats.emotions.frustration >= 100) {
+  if (stats.emotions.curses >= 100) {
     achievements.push({
       emoji: '😤',
       name: 'Potty Mouth',
-      description: `${stats.emotions.frustration} frustration moments (warrior!)`
+      description: `${stats.emotions.curses} curse words detected (warrior!)`
     });
   }
 
@@ -411,7 +541,7 @@ function getFunFacts(stats: Stats): string[] {
   }
 
   // AI response length
-  facts.push(`AI generated ${stats.engagement.avgAssistantMessageLength} chars per response (like a long email)`);
+  facts.push(`AI generated ${stats.engagement.avgAssistantMessageLength} chars per response on average`);
 
   // Longest conversation
   if (stats.conversations.longestLength > 50) {
@@ -421,11 +551,6 @@ function getFunFacts(stats: Stats): string[] {
   // Time span
   if (stats.overview.timeSpanDays >= 30) {
     facts.push(`You've been using Cursor for ${stats.overview.timeSpanDays} days ${getTimeEmoji(12)}`);
-  }
-
-  // Response ratio
-  if (stats.overview.responseRatio > 10) {
-    facts.push(`AI gives you ${stats.overview.responseRatio}x more content than you ask for! 🤯`);
   }
 
   // Average time

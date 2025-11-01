@@ -56,6 +56,9 @@ export interface ConversationStats {
   oneShotConversations: number; // 1-2 messages (user asks, AI answers, done)
   multiShotConversations: number; // 3+ messages (back-and-forth)
   oneShotPercentage: number;
+  twoTurnConversations: number; // Exactly 2 messages
+  extendedConversations: number; // >10 messages
+  marathonConversations: number; // >50 messages
   multiDayConversations: number;
   avgTimeBetweenTurns: number;
   avgSessionDuration: number;
@@ -98,6 +101,7 @@ export interface PushupStats {
 
 export interface EmotionalStats {
   frustration: number;
+  curses: number; // profanity/swear words only
   excitement: number;
   confusion: number;
   gratitude: number;
@@ -167,11 +171,30 @@ const validationPatterns = [
 ];
 
 // Emotional patterns
-const frustrationPatterns = [
+const cursePatterns = [
   /\bf+u+c+k+\b/gi,
+  /\bf+u+c+k+e+r+\b/gi,
   /\bd+a+m+n+\b/gi,
   /\bs+h+i+t+\b/gi,
+  /\bbullshit\b/gi,
   /\bwtf\b/gi,
+  /\bwhat\s+the\s+fuck\b/gi,
+  /\bf+u+c+k+i+n+g+\b/gi,
+  /\ba+s+s+h+o+l+e+\b/gi,
+  /\ba+s+s+\b/gi,
+  /\bb+i+t+c+h+\b/gi,
+  /\bb+a+s+t+a+r+d+\b/gi,
+  /\bc+r+a+p+\b/gi,
+  /\bg+o+d+d+a+m+n+\b/gi,
+  /\bg+o+d+d+a+m+\b/gi,
+  /\bd+i+c+k+\b/gi,
+  /\bp+i+s+s+\b/gi,
+  /\bp+i+s+s+ed+\b/gi,
+  /\bhell\b/gi,
+];
+
+const frustrationPatterns = [
+  ...cursePatterns,
   /\bbroken\b/gi,
   /doesn'?t\s+work/gi,
   /still\s+fail/gi,
@@ -445,26 +468,40 @@ function isYelling(text: string): boolean {
 function calculateEmotionalStats(userMessages: Message[]): EmotionalStats {
   const allText = userMessages.map(m => m.text).join(' ');
 
+  const curses = countMatches(allText, cursePatterns);
   const frustrationKeywords = countMatches(allText, frustrationPatterns);
   const excitement = countMatches(allText, excitementPatterns);
   const confusion = countMatches(allText, confusionPatterns);
   const gratitude = countMatches(allText, gratitudePatterns);
   const yelling = userMessages.filter(m => isYelling(m.text)).length;
 
-  // CAPS LOCK yelling = rage/frustration at AI
+  // Include yelling in frustration count for stats display (it's funny to see!)
   const frustration = frustrationKeywords + yelling;
 
   const yellingPercentage = userMessages.length > 0 ? Math.round((yelling / userMessages.length) * 100) : 0;
 
-  // Determine top emotion (yelling counts as frustration)
-  const emotions = { frustrated: frustration, excited: excitement, confused: confusion, grateful: gratitude };
-  const topEmotion = Object.entries(emotions).reduce((a, b) => a[1] > b[1] ? a : b, ['neutral', 0])[0] as any;
+  // Determine top emotion - use only frustrationKeywords for mood (not yelling)
+  // CAPS messages are shown in stats but don't affect mood determination
+  const minThreshold = Math.max(1, Math.floor(userMessages.length * 0.01));
+  const emotions = {
+    frustrated: frustrationKeywords, // Only keyword-based frustration for mood
+    excited: excitement,
+    confused: confusion,
+    grateful: gratitude
+  };
+
+  // Only consider emotions above threshold, otherwise default to neutral
+  const significantEmotions = Object.entries(emotions).filter(([_, count]) => count >= minThreshold);
+  const topEmotion = significantEmotions.length > 0
+    ? significantEmotions.reduce((a, b) => a[1] > b[1] ? a : b)[0] as any
+    : 'neutral';
 
   // Emotional range: how many different emotions shown
   const emotionalRange = [frustration, excitement, confusion, gratitude].filter(v => v > 0).length;
 
   return {
     frustration,
+    curses,
     excitement,
     confusion,
     gratitude,
@@ -725,8 +762,8 @@ function calculateActivityStats(conversations: Conversation[], messages: Message
   });
 
   const sortedDays = Array.from(messagesPerDay.entries()).sort((a, b) => b[1] - a[1]);
-  const mostActiveDay = sortedDays[0] || { date: '', count: 0 };
-  const leastActiveDay = sortedDays[sortedDays.length - 1] || mostActiveDay;
+  const mostActiveDayEntry = sortedDays[0] || ['', 0];
+  const leastActiveDayEntry = sortedDays.length > 0 ? sortedDays[sortedDays.length - 1] : ['', 0];
 
   const weekdayDistribution = new Map<string, number>();
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -764,8 +801,8 @@ function calculateActivityStats(conversations: Conversation[], messages: Message
   return {
     messagesPerDay,
     conversationsPerDay,
-    mostActiveDay: { date: mostActiveDay[0], count: mostActiveDay[1] },
-    leastActiveDay: { date: leastActiveDay[0], count: leastActiveDay[1] },
+    mostActiveDay: { date: mostActiveDayEntry[0] as string, count: mostActiveDayEntry[1] as number },
+    leastActiveDay: { date: leastActiveDayEntry[0] as string, count: leastActiveDayEntry[1] as number },
     last30Days,
     weekdayDistribution,
     weekendVsWeekday: { weekday: weekdayCount, weekend: weekendCount }
@@ -773,6 +810,39 @@ function calculateActivityStats(conversations: Conversation[], messages: Message
 }
 
 function calculateConversationStats(conversations: Conversation[]): ConversationStats {
+  if (conversations.length === 0) {
+    return {
+      avgLength: 0,
+      medianLength: 0,
+      shortestLength: 0,
+      longestLength: 0,
+      longestConversation: {
+        id: '',
+        length: 0,
+        date: new Date()
+      },
+      lengthDistribution: {
+        quick: 0,
+        short: 0,
+        medium: 0,
+        epic: 0
+      },
+      oneShotConversations: 0,
+      multiShotConversations: 0,
+      oneShotPercentage: 0,
+      twoTurnConversations: 0,
+      extendedConversations: 0,
+      marathonConversations: 0,
+      multiDayConversations: 0,
+      avgTimeBetweenTurns: 0,
+      avgSessionDuration: 0,
+      longestSession: {
+        duration: 0,
+        date: new Date()
+      }
+    };
+  }
+
   const lengths = conversations.map(c => c.messages.length);
   const avgLength = lengths.reduce((a, b) => a + b, 0) / lengths.length;
   const sortedLengths = [...lengths].sort((a, b) => a - b);
@@ -797,6 +867,11 @@ function calculateConversationStats(conversations: Conversation[]): Conversation
   const oneShotPercentage = conversations.length > 0
     ? Math.round((oneShotConversations / conversations.length) * 100)
     : 0;
+
+  // Conversation length breakdowns
+  const twoTurnConversations = lengths.filter(l => l === 2).length;
+  const extendedConversations = lengths.filter(l => l > 10).length;
+  const marathonConversations = lengths.filter(l => l > 50).length;
 
   const multiDayConversations = conversations.filter(c =>
     differenceInDays(c.lastUpdatedAt, c.createdAt) >= 1
@@ -832,7 +907,7 @@ function calculateConversationStats(conversations: Conversation[]): Conversation
     ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length * 10) / 10
     : 0;
 
-  const longestSessionDuration = Math.max(...durations, 0);
+  const longestSessionDuration = durations.length > 0 ? Math.max(...durations) : 0;
   const longestSessionConv = conversations.find(c => {
     if (c.messages.length < 2) return false;
     const duration = differenceInHours(c.messages[c.messages.length - 1].timestamp, c.messages[0].timestamp);
@@ -853,6 +928,9 @@ function calculateConversationStats(conversations: Conversation[]): Conversation
     oneShotConversations,
     multiShotConversations,
     oneShotPercentage,
+    twoTurnConversations,
+    extendedConversations,
+    marathonConversations,
     multiDayConversations,
     avgTimeBetweenTurns,
     avgSessionDuration,
@@ -886,7 +964,7 @@ function calculateTimeStats(messages: Message[]): TimeStats {
   });
 
   const sortedHours = Array.from(hourlyDistribution.entries()).sort((a, b) => b[1] - a[1]);
-  const peakHour = sortedHours[0] || { hour: 10, count: 0 };
+  const peakHourEntry = sortedHours[0] || [10, 0];
 
   const sortedDays = Array.from(dayOfWeekDistribution.entries()).sort((a, b) => b[1] - a[1]);
   const mostProductiveDay = sortedDays[0]?.[0] || 'Monday';
@@ -895,11 +973,11 @@ function calculateTimeStats(messages: Message[]): TimeStats {
     const hour = new Date(m.timestamp).getHours();
     return hour >= 0 && hour < 6;
   }).length;
-  const nightOwlScore = Math.round((nightMessages / messages.length) * 100);
+  const nightOwlScore = messages.length > 0 ? Math.round((nightMessages / messages.length) * 100) : 0;
 
   return {
     hourlyDistribution,
-    peakHour: { hour: peakHour[0], count: peakHour[1] },
+    peakHour: { hour: peakHourEntry[0] as number, count: peakHourEntry[1] as number },
     dayOfWeekDistribution,
     mostProductiveDay,
     nightOwlScore,
@@ -908,16 +986,16 @@ function calculateTimeStats(messages: Message[]): TimeStats {
 }
 
 function calculateEngagementStats(conversations: Conversation[], userMessages: Message[], assistantMessages: Message[]): EngagementStats {
-  const avgUserMessageLength = Math.round(
+  const avgUserMessageLength = userMessages.length > 0 ? Math.round(
     userMessages.reduce((sum, m) => sum + m.text.length, 0) / userMessages.length
-  );
+  ) : 0;
 
-  const avgAssistantMessageLength = Math.round(
+  const avgAssistantMessageLength = assistantMessages.length > 0 ? Math.round(
     assistantMessages.reduce((sum, m) => sum + m.text.length, 0) / assistantMessages.length
-  );
+  ) : 0;
 
-  const userMessagesPerConversation = Math.round((userMessages.length / conversations.length) * 10) / 10;
-  const assistantMessagesPerConversation = Math.round((assistantMessages.length / conversations.length) * 10) / 10;
+  const userMessagesPerConversation = conversations.length > 0 ? Math.round((userMessages.length / conversations.length) * 10) / 10 : 0;
+  const assistantMessagesPerConversation = conversations.length > 0 ? Math.round((assistantMessages.length / conversations.length) * 10) / 10 : 0;
 
   const agenticConversations = conversations.filter(c => c.isAgentic).length;
   const conversationsWithContext = conversations.filter(c => c.hasContext).length;
@@ -930,9 +1008,9 @@ function calculateEngagementStats(conversations: Conversation[], userMessages: M
       assistant: assistantMessagesPerConversation
     },
     agenticConversations,
-    agenticPercentage: Math.round((agenticConversations / conversations.length) * 100),
+    agenticPercentage: conversations.length > 0 ? Math.round((agenticConversations / conversations.length) * 100) : 0,
     conversationsWithContext,
-    contextPercentage: Math.round((conversationsWithContext / conversations.length) * 100)
+    contextPercentage: conversations.length > 0 ? Math.round((conversationsWithContext / conversations.length) * 100) : 0
   };
 }
 

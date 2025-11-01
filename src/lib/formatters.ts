@@ -22,21 +22,27 @@ export function formatDate(date: Date): string {
 }
 
 export function createProgressBar(value: number, max: number, width: number = 20): string {
+  if (max <= 0 || value < 0) {
+    return chalk.gray('░'.repeat(width));
+  }
   const percentage = Math.min(value / max, 1);
-  const filled = Math.round(percentage * width);
-  const empty = width - filled;
+  const filled = Math.max(0, Math.round(percentage * width));
+  const empty = Math.max(0, width - filled);
   return chalk.green('█'.repeat(filled)) + chalk.gray('░'.repeat(empty));
 }
 
 export function createBarChart(value: number, maxValue: number, width: number = 50): string {
-  const percentage = maxValue > 0 ? value / maxValue : 0;
-  const filled = Math.round(percentage * width);
-  const empty = width - filled;
+  if (maxValue <= 0 || value < 0) {
+    return '░'.repeat(width);
+  }
+  const percentage = value / maxValue;
+  const filled = Math.max(0, Math.round(percentage * width));
+  const empty = Math.max(0, width - filled);
   return '▓'.repeat(filled) + '░'.repeat(empty);
 }
 
 export function createHeatmapCell(value: number, maxValue: number): string {
-  if (value === 0) return chalk.gray('░');
+  if (value === 0 || maxValue <= 0) return chalk.gray('░');
   const percentage = value / maxValue;
   if (percentage < 0.25) return chalk.blue('▓');
   if (percentage < 0.5) return chalk.cyan('▓');
@@ -66,7 +72,7 @@ export function boxFooter(width: number = 74): string {
 export function boxLine(content: string, width: number = 74): string {
   const strippedContent = stripAnsi(content);
   const padding = Math.max(0, width - strippedContent.length);
-  return '║ ' + content + ' '.repeat(padding - 1) + '║';
+  return '║ ' + content + ' '.repeat(Math.max(0, padding - 1)) + '║';
 }
 
 export function emptyLine(width: number = 74): string {
