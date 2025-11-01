@@ -92,16 +92,69 @@ export function displayDashboard(stats: Stats): void {
 
   lines.push(emptyLine(width));
 
-  // What You're Building Section
+  // AI Interaction Style Section
   lines.push(boxDivider(width));
-  lines.push(boxLine(sectionTitle('  💻 WHAT YOU\'RE BUILDING'), width));
+  lines.push(boxLine(sectionTitle('  🤖 YOUR AI INTERACTION STYLE'), width));
   lines.push(boxLine('  ' + '━'.repeat(70), width));
   lines.push(emptyLine(width));
 
-  // Note: We don't have language data yet in our analyzer
-  // This is a placeholder - would need to parse code blocks
-  lines.push(boxLine(`  📦 ${formatNumber(stats.overview.assistantMessages)} assistant messages generated`, width));
-  lines.push(boxLine(`  📝 Avg message length: ${stats.engagement.avgAssistantMessageLength} characters`, width));
+  const agenticBar = createProgressBar(stats.engagement.agenticPercentage, 100, 20);
+  lines.push(boxLine(`  Agentic Mode:      ${agenticBar}  ${stats.engagement.agenticPercentage}%`, width));
+  lines.push(boxLine(chalk.gray(`  (AI working autonomously vs chat-only)`), width));
+  lines.push(emptyLine(width));
+
+  const oneShotBar = createProgressBar(stats.conversations.oneShotPercentage, 100, 20);
+  lines.push(boxLine(`  One-Shot Sessions: ${oneShotBar}  ${stats.conversations.oneShotPercentage}%`, width));
+  lines.push(boxLine(chalk.gray(`  (Quick Q&A vs back-and-forth discussion)`), width));
+  lines.push(emptyLine(width));
+
+  lines.push(boxLine(`  📊 ${formatNumber(stats.conversations.oneShotConversations)} quick Q&As  •  ${formatNumber(stats.conversations.multiShotConversations)} discussions`, width));
+  lines.push(boxLine(`  🎯 Avg ${stats.engagement.messagesPerConversation.user} msgs to get answer`, width));
+  lines.push(emptyLine(width));
+
+  // Vibe-Coding Snapshot Section
+  lines.push(boxDivider(width));
+  lines.push(boxLine(sectionTitle('  ✨ VIBE-CODING SNAPSHOT'), width));
+  lines.push(boxLine('  ' + '━'.repeat(70), width));
+  lines.push(emptyLine(width));
+
+  // Emotions
+  const emotionEmojis: Record<string, string> = {
+    frustrated: '😤',
+    excited: '🎉',
+    confused: '🤔',
+    grateful: '🙏',
+    neutral: '😐'
+  };
+  lines.push(boxLine(`  Mood:              ${chalk.bold.yellow(stats.emotions.topEmotion.toUpperCase())} ${emotionEmojis[stats.emotions.topEmotion]}  ${stats.emotions.yelling > 0 ? `(${stats.emotions.yelling} CAPS msgs 📢)` : ''}`, width));
+
+  // Tasks
+  const taskEmojis: Record<string, string> = {
+    fix: '🐛', add: '✨', refactor: '♻️', delete: '🗑️', optimize: '⚡', test: '🧪', docs: '📝', none: '🤷'
+  };
+  lines.push(boxLine(`  Main Task:         ${chalk.bold.cyan(stats.tasks.topTaskType.toUpperCase())} ${taskEmojis[stats.tasks.topTaskType] || ''}  (${stats.tasks.totalTasks} total)`, width));
+
+  // Thinking mode
+  const thinkingEmojis: Record<string, string> = {
+    deep: '🧠', speed: '⚡', experimental: '🧪', balanced: '⚖️'
+  };
+  lines.push(boxLine(`  Thinking Mode:     ${chalk.bold.green(stats.thinking.thinkingMode.toUpperCase())} ${thinkingEmojis[stats.thinking.thinkingMode]}`, width));
+
+  // Confidence
+  const confBar = createProgressBar(stats.confidence.confidenceScore, 100, 15);
+  lines.push(boxLine(`  Confidence:        ${confBar}  ${stats.confidence.confidenceScore}%`, width));
+
+  // Communication style
+  const commStyle = stats.communication.politenessScore >= 70 ? `😇 Polite (${stats.communication.politenessScore}%)` :
+                     stats.communication.direct > stats.communication.polite ? `👑 Direct` :
+                     stats.communication.collaborative > stats.communication.polite ? `🤝 Collaborative` : `⚖️ Balanced`;
+  lines.push(boxLine(`  Communication:     ${commStyle}`, width));
+
+  // Learning
+  if (stats.learning.questionsAsked > 0) {
+    lines.push(boxLine(`  Questions Asked:   ${stats.learning.questionsAsked}  💡`, width));
+  }
+
   lines.push(emptyLine(width));
 
   // Achievements Section
@@ -217,6 +270,141 @@ function getAchievements(stats: Stats): Achievement[] {
       emoji: '🏰',
       name: 'Marathon Chatter',
       description: `Longest conversation: ${stats.conversations.longestLength} messages`
+    });
+  }
+
+  // Emotional achievements
+  if (stats.emotions.frustration >= 100) {
+    achievements.push({
+      emoji: '😤',
+      name: 'Potty Mouth',
+      description: `${stats.emotions.frustration} frustration moments (warrior!)`
+    });
+  }
+
+  if (stats.emotions.yelling >= 50) {
+    achievements.push({
+      emoji: '😤',
+      name: 'CAPS LOCK Rage',
+      description: `${stats.emotions.yelling} frustrated msgs in ALL CAPS`
+    });
+  }
+
+  // Learning achievements
+  if (stats.learning.questionsAsked >= 500) {
+    achievements.push({
+      emoji: '🎓',
+      name: 'Eternal Student',
+      description: `Asked ${stats.learning.questionsAsked} questions`
+    });
+  }
+
+  if (stats.learning.teachingBack >= 50) {
+    achievements.push({
+      emoji: '👨‍🏫',
+      name: 'The Professor',
+      description: `Taught AI back ${stats.learning.teachingBack} times`
+    });
+  }
+
+  if (stats.learning.ahaMoments >= 100) {
+    achievements.push({
+      emoji: '💡',
+      name: 'Lightbulb Collector',
+      description: `${stats.learning.ahaMoments} AHA moments!`
+    });
+  }
+
+  // Thinking mode achievements
+  if (stats.thinking.deepThinkingRequests >= 20) {
+    achievements.push({
+      emoji: '🧠',
+      name: 'Deep Thinker',
+      description: `Used ultrathink ${stats.thinking.deepThinkingRequests} times`
+    });
+  }
+
+  if (stats.thinking.speedRequests >= 100) {
+    achievements.push({
+      emoji: '⚡',
+      name: 'Speedrunner',
+      description: `${stats.thinking.speedRequests} quick/fast requests`
+    });
+  }
+
+  // Task achievements
+  if (stats.tasks.fix > stats.tasks.add * 1.5) {
+    achievements.push({
+      emoji: '🐛',
+      name: 'Bug Hunter',
+      description: `You fix more than you build!`
+    });
+  }
+
+  if (stats.tasks.add > stats.tasks.fix * 1.5) {
+    achievements.push({
+      emoji: '✨',
+      name: 'Creator',
+      description: `You build more than you fix!`
+    });
+  }
+
+  if (stats.tasks.refactor >= 100) {
+    achievements.push({
+      emoji: '♻️',
+      name: 'Perfectionist',
+      description: `${stats.tasks.refactor} refactoring tasks`
+    });
+  }
+
+  // Confidence achievements
+  if (stats.confidence.confidenceScore >= 80) {
+    achievements.push({
+      emoji: '👑',
+      name: 'Alpha Dev',
+      description: `${stats.confidence.confidenceScore}% confidence level`
+    });
+  }
+
+  if (stats.confidence.confidenceScore <= 30) {
+    achievements.push({
+      emoji: '🤔',
+      name: 'Humble Coder',
+      description: `Lots of "maybe" and "not sure"`
+    });
+  }
+
+  // Communication achievements
+  if (stats.communication.politenessScore >= 80) {
+    achievements.push({
+      emoji: '😇',
+      name: 'Polite Partner',
+      description: `${stats.communication.politenessScore}% politeness score`
+    });
+  }
+
+  if (stats.communication.direct >= 200) {
+    achievements.push({
+      emoji: '🎯',
+      name: 'The Boss',
+      description: `${stats.communication.direct} direct commands`
+    });
+  }
+
+  // Session style achievements
+  if (stats.conversations.oneShotPercentage >= 80) {
+    achievements.push({
+      emoji: '⚡',
+      name: 'Quick Draw',
+      description: `${stats.conversations.oneShotPercentage}% one-shot sessions`
+    });
+  }
+
+  if (stats.conversations.oneShotPercentage <= 20) {
+    achievements.push({
+      emoji: '🏊',
+      name: 'Deep Diver',
+      description: `Loves long, thorough conversations`
     });
   }
 

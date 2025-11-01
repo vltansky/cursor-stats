@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { Stats } from '../lib/analyzer.js';
 import { displayDashboard } from './dashboard.js';
 import { displayPushupChallenge } from './pushup-challenge.js';
+import { displayVibeStats } from './vibe-stats.js';
 
 export async function showMainMenu(stats: Stats): Promise<void> {
   while (true) {
@@ -76,6 +77,7 @@ async function showDeepDiveMenu(stats: Stats): Promise<void> {
           { name: '💬 Conversation Patterns (length, sessions, turns)', value: 'conversations' },
           { name: '⏰ Time Machine (when do you code?)', value: 'time' },
           { name: '🤖 AI Interaction Style (how you use Cursor)', value: 'engagement' },
+          { name: '✨ Vibe-Coding Insights (emotions, learning, tasks)', value: 'vibe' },
           new inquirer.Separator(),
           { name: '← Back to Main Menu', value: 'back' }
         ]
@@ -101,6 +103,11 @@ async function showDeepDiveMenu(stats: Stats): Promise<void> {
 
       case 'engagement':
         await displayEngagement(stats);
+        break;
+
+      case 'vibe':
+        displayVibeStats(stats);
+        await waitForKey();
         break;
     }
   }

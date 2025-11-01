@@ -8,6 +8,12 @@ export interface Stats {
   time: TimeStats;
   engagement: EngagementStats;
   pushups: PushupStats;
+  emotions: EmotionalStats;
+  learning: LearningStats;
+  thinking: ThinkingStats;
+  tasks: TaskStats;
+  confidence: ConfidenceStats;
+  communication: CommunicationStats;
 }
 
 export interface OverviewStats {
@@ -47,6 +53,9 @@ export interface ConversationStats {
     medium: number; // 21-50
     epic: number; // 50+
   };
+  oneShotConversations: number; // 1-2 messages (user asks, AI answers, done)
+  multiShotConversations: number; // 3+ messages (back-and-forth)
+  oneShotPercentage: number;
   multiDayConversations: number;
   avgTimeBetweenTurns: number;
   avgSessionDuration: number;
@@ -87,6 +96,65 @@ export interface PushupStats {
   bestStreak: number;
 }
 
+export interface EmotionalStats {
+  frustration: number;
+  excitement: number;
+  confusion: number;
+  gratitude: number;
+  yelling: number; // CAPS LOCK messages
+  yellingPercentage: number;
+  topEmotion: 'frustrated' | 'excited' | 'confused' | 'grateful' | 'neutral';
+  emotionalRange: number; // variety of emotions shown
+}
+
+export interface LearningStats {
+  questionsAsked: number;
+  howQuestions: number;
+  whyQuestions: number;
+  whatQuestions: number;
+  teachingBack: number; // times user corrected/explained to AI
+  ahaMoments: number;
+  questionRate: number; // questions per message
+  curiosityScore: number;
+}
+
+export interface ThinkingStats {
+  deepThinkingRequests: number; // "think hard", "ultrathink"
+  carefulRequests: number; // "be careful", "make sure"
+  speedRequests: number; // "quick", "fast", "hurry"
+  experimentalRequests: number; // "try", "test", "what if"
+  thinkingMode: 'deep' | 'speed' | 'experimental' | 'balanced';
+}
+
+export interface TaskStats {
+  fix: number;
+  add: number;
+  refactor: number;
+  delete: number;
+  optimize: number;
+  test: number;
+  docs: number;
+  totalTasks: number;
+  topTaskType: string;
+  fixVsAddRatio: number;
+}
+
+export interface ConfidenceStats {
+  uncertain: number; // "maybe", "probably", "not sure"
+  certain: number; // "definitely", "must", "should"
+  exploratory: number; // "explore", "investigate"
+  confidenceScore: number; // certain / (certain + uncertain)
+}
+
+export interface CommunicationStats {
+  polite: number; // "please", "thanks"
+  direct: number; // "do this", "just"
+  collaborative: number; // "let's", "we"
+  politenessScore: number;
+  bossMode: number; // direct commands
+  partnerMode: number; // collaborative language
+}
+
 const validationPatterns = [
   { regex: /you('re|\s+are)\s+absolutely\s+right/gi, phrase: "you're absolutely right" },
   { regex: /you('re|\s+are)\s+totally\s+right/gi, phrase: "you're totally right" },
@@ -96,6 +164,228 @@ const validationPatterns = [
   { regex: /perfect(ly)?\s+(right|correct)/gi, phrase: "perfectly correct" },
   { regex: /you\s+nailed\s+it/gi, phrase: "you nailed it" },
   { regex: /spot\s+on/gi, phrase: "spot on" },
+];
+
+// Emotional patterns
+const frustrationPatterns = [
+  /\bf+u+c+k+\b/gi,
+  /\bd+a+m+n+\b/gi,
+  /\bs+h+i+t+\b/gi,
+  /\bwtf\b/gi,
+  /\bbroken\b/gi,
+  /doesn'?t\s+work/gi,
+  /still\s+fail/gi,
+  /not\s+working/gi,
+  /\bagain\?+/gi,
+];
+
+const excitementPatterns = [
+  /\byes+!+/gi,
+  /\bperfect!+/gi,
+  /\bawesome!+/gi,
+  /\bnice!+/gi,
+  /it\s+works?!+/gi,
+  /\bfinally!+/gi,
+  /\byay+!*/gi,
+  /\bhell\s+yeah/gi,
+];
+
+const confusionPatterns = [
+  /\bconfused\b/gi,
+  /don'?t\s+understand/gi,
+  /\bwhat\?+/gi,
+  /\bhuh\b/gi,
+  /\?\?+/gi,
+  /makes?\s+no\s+sense/gi,
+];
+
+const gratitudePatterns = [
+  /\bthanks?\b/gi,
+  /thank\s+you/gi,
+  /appreciate/gi,
+  /helpful/gi,
+  /lifesaver/gi,
+  /you'?re\s+the\s+best/gi,
+];
+
+// Learning patterns
+const howQuestionPatterns = [
+  /\bhow\s+(do|can|does|did|should|would|to)/gi,
+];
+
+const whyQuestionPatterns = [
+  /\bwhy\s+(is|does|did|would|should|can)/gi,
+  /what'?s\s+the\s+reason/gi,
+];
+
+const whatQuestionPatterns = [
+  /\bwhat\s+(is|does|did|would|should|can|happens?|means?)/gi,
+];
+
+const teachingBackPatterns = [
+  /\bno\b,?/gi,
+  /\bactually\b,?/gi,
+  /that'?s\s+wrong/gi,
+  /not\s+quite/gi,
+  /let\s+me\s+explain/gi,
+  /what\s+i\s+mean/gi,
+];
+
+const ahaMomentPatterns = [
+  /\boh!+/gi,
+  /\bah+!*/gi,
+  /i\s+see\b/gi,
+  /makes?\s+sense/gi,
+  /\bgot\s+it\b/gi,
+  /now\s+i\s+understand/gi,
+  /that\s+explains/gi,
+  /\baha\b/gi,
+];
+
+// Thinking patterns
+const deepThinkingPatterns = [
+  /think\s+hard/gi,
+  /ultrathink/gi,
+  /think\s+step\s+by\s+step/gi,
+  /think\s+carefully/gi,
+  /deep\s+dive/gi,
+];
+
+const carefulPatterns = [
+  /be\s+careful/gi,
+  /make\s+sure/gi,
+  /double\s+check/gi,
+  /triple\s+check/gi,
+  /\bcarefully\b/gi,
+];
+
+const speedPatterns = [
+  /\bquick(ly)?\b/gi,
+  /\bfast\b/gi,
+  /\basap\b/gi,
+  /\bhurry\b/gi,
+  /\bnow\b/gi,
+  /\burgent/gi,
+  /\bjust\s+(do|make|add|fix)/gi,
+];
+
+const experimentalPatterns = [
+  /\btry/gi,
+  /\btest/gi,
+  /experiment/gi,
+  /see\s+if/gi,
+  /what\s+if/gi,
+  /let'?s\s+see/gi,
+];
+
+// Task patterns
+const fixPatterns = [
+  /\bfix\b/gi,
+  /\bbug\b/gi,
+  /\berror\b/gi,
+  /\bbroken\b/gi,
+  /\bdebug\b/gi,
+  /\bissue\b/gi,
+  /\bsolve\b/gi,
+];
+
+const addPatterns = [
+  /\badd\b/gi,
+  /\bcreate\b/gi,
+  /\bnew\b/gi,
+  /implement/gi,
+  /\bbuild\b/gi,
+  /\bmake\s+a\b/gi,
+];
+
+const refactorPatterns = [
+  /refactor/gi,
+  /clean\s+up/gi,
+  /reorganize/gi,
+  /restructure/gi,
+  /improve/gi,
+];
+
+const deletePatterns = [
+  /\bremove\b/gi,
+  /\bdelete\b/gi,
+  /get\s+rid\s+of/gi,
+  /take\s+out/gi,
+];
+
+const optimizePatterns = [
+  /optimi[zs]e/gi,
+  /faster/gi,
+  /performance/gi,
+  /speed\s+up/gi,
+  /efficient/gi,
+];
+
+const testPatterns = [
+  /\btest/gi,
+  /\bspec\b/gi,
+  /coverage/gi,
+  /unit\s+test/gi,
+];
+
+const docsPatterns = [
+  /document/gi,
+  /\bcomment\b/gi,
+  /\breadme\b/gi,
+  /explain\s+in\s+(docs|documentation)/gi,
+];
+
+// Confidence patterns
+const uncertainPatterns = [
+  /\bmaybe\b/gi,
+  /\bprobably\b/gi,
+  /i\s+think\b/gi,
+  /not\s+sure/gi,
+  /\bmight\b/gi,
+  /\bcould\s+be\b/gi,
+];
+
+const certainPatterns = [
+  /\bdefinitely\b/gi,
+  /\bmust\b/gi,
+  /\bshould\b/gi,
+  /\bneed\s+to\b/gi,
+  /has\s+to\b/gi,
+  /\bwill\b/gi,
+];
+
+const exploratoryPatterns = [
+  /explore/gi,
+  /investigate/gi,
+  /look\s+into/gi,
+  /\bcheck\b/gi,
+  /find\s+out/gi,
+];
+
+// Communication patterns
+const politePatterns = [
+  /\bplease\b/gi,
+  /\bthanks?\b/gi,
+  /thank\s+you/gi,
+  /\bsorry\b/gi,
+  /if\s+you\s+don'?t\s+mind/gi,
+  /would\s+you\s+(mind|please)/gi,
+];
+
+const directPatterns = [
+  /\bjust\s+do\b/gi,
+  /\bdo\s+this\b/gi,
+  /\bdo\s+it\b/gi,
+  /\bnow\b/gi,
+  /^(add|fix|create|remove|delete|make)/gim, // commands at start
+];
+
+const collaborativePatterns = [
+  /\blet'?s\b/gi,
+  /\bwe\s+(should|can|need|must)/gi,
+  /\bcan\s+we\b/gi,
+  /together/gi,
+  /\bour\b/gi,
 ];
 
 function countValidations(text: string): number {
@@ -114,6 +404,201 @@ function getPhraseCount(text: string, phrase: string): number {
   if (!pattern) return 0;
   const matches = text.match(pattern.regex);
   return matches ? matches.length : 0;
+}
+
+// Helper function to count pattern matches
+function countMatches(text: string, patterns: RegExp[]): number {
+  let count = 0;
+  for (const pattern of patterns) {
+    const matches = text.match(pattern);
+    if (matches) {
+      count += matches.length;
+    }
+  }
+  return count;
+}
+
+// CAPS LOCK detection - checks if message is yelling
+function isYelling(text: string): boolean {
+  // Ignore code blocks, URLs, and short messages
+  if (text.length < 10) return false;
+  if (text.includes('```') || text.includes('http')) return false;
+
+  // Extract words (letters only, minimum 3 characters)
+  const words = text.match(/\b[A-Za-z]{3,}\b/g);
+  if (!words || words.length < 3) return false;
+
+  // Common acronyms to ignore
+  const acronyms = ['API', 'URL', 'HTTP', 'CSS', 'HTML', 'JSON', 'XML', 'SQL', 'CLI', 'GUI', 'IDE', 'SDK', 'AWS', 'GCP', 'NPM', 'PDF'];
+
+  // Count words in ALL CAPS (excluding known acronyms)
+  const capsWords = words.filter(word => {
+    if (acronyms.includes(word.toUpperCase())) return false;
+    return word === word.toUpperCase() && word !== word.toLowerCase();
+  });
+
+  // If 50%+ of words are in caps, it's yelling
+  return capsWords.length / words.length >= 0.5;
+}
+
+// Calculate emotional stats from user messages
+function calculateEmotionalStats(userMessages: Message[]): EmotionalStats {
+  const allText = userMessages.map(m => m.text).join(' ');
+
+  const frustrationKeywords = countMatches(allText, frustrationPatterns);
+  const excitement = countMatches(allText, excitementPatterns);
+  const confusion = countMatches(allText, confusionPatterns);
+  const gratitude = countMatches(allText, gratitudePatterns);
+  const yelling = userMessages.filter(m => isYelling(m.text)).length;
+
+  // CAPS LOCK yelling = rage/frustration at AI
+  const frustration = frustrationKeywords + yelling;
+
+  const yellingPercentage = userMessages.length > 0 ? Math.round((yelling / userMessages.length) * 100) : 0;
+
+  // Determine top emotion (yelling counts as frustration)
+  const emotions = { frustrated: frustration, excited: excitement, confused: confusion, grateful: gratitude };
+  const topEmotion = Object.entries(emotions).reduce((a, b) => a[1] > b[1] ? a : b, ['neutral', 0])[0] as any;
+
+  // Emotional range: how many different emotions shown
+  const emotionalRange = [frustration, excitement, confusion, gratitude].filter(v => v > 0).length;
+
+  return {
+    frustration,
+    excitement,
+    confusion,
+    gratitude,
+    yelling,
+    yellingPercentage,
+    topEmotion,
+    emotionalRange
+  };
+}
+
+// Calculate learning stats from user messages
+function calculateLearningStats(userMessages: Message[]): LearningStats {
+  const allText = userMessages.map(m => m.text).join(' ');
+
+  const howQuestions = countMatches(allText, howQuestionPatterns);
+  const whyQuestions = countMatches(allText, whyQuestionPatterns);
+  const whatQuestions = countMatches(allText, whatQuestionPatterns);
+  const questionsAsked = howQuestions + whyQuestions + whatQuestions;
+
+  const teachingBack = countMatches(allText, teachingBackPatterns);
+  const ahaMoments = countMatches(allText, ahaMomentPatterns);
+
+  const questionRate = userMessages.length > 0 ? Math.round((questionsAsked / userMessages.length) * 100) / 100 : 0;
+  const curiosityScore = Math.min(100, Math.round((questionsAsked / Math.max(userMessages.length, 1)) * 100));
+
+  return {
+    questionsAsked,
+    howQuestions,
+    whyQuestions,
+    whatQuestions,
+    teachingBack,
+    ahaMoments,
+    questionRate,
+    curiosityScore
+  };
+}
+
+// Calculate thinking mode stats from user messages
+function calculateThinkingStats(userMessages: Message[]): ThinkingStats {
+  const allText = userMessages.map(m => m.text).join(' ');
+
+  const deepThinkingRequests = countMatches(allText, deepThinkingPatterns);
+  const carefulRequests = countMatches(allText, carefulPatterns);
+  const speedRequests = countMatches(allText, speedPatterns);
+  const experimentalRequests = countMatches(allText, experimentalPatterns);
+
+  // Determine thinking mode
+  const modes = { deep: deepThinkingRequests, speed: speedRequests, experimental: experimentalRequests };
+  const total = deepThinkingRequests + speedRequests + experimentalRequests;
+  const thinkingMode = total === 0 ? 'balanced' : Object.entries(modes).reduce((a, b) => a[1] > b[1] ? a : b)[0] as any;
+
+  return {
+    deepThinkingRequests,
+    carefulRequests,
+    speedRequests,
+    experimentalRequests,
+    thinkingMode
+  };
+}
+
+// Calculate task type distribution from user messages
+function calculateTaskStats(userMessages: Message[]): TaskStats {
+  const allText = userMessages.map(m => m.text).join(' ');
+
+  const fix = countMatches(allText, fixPatterns);
+  const add = countMatches(allText, addPatterns);
+  const refactor = countMatches(allText, refactorPatterns);
+  const deleteTask = countMatches(allText, deletePatterns);
+  const optimize = countMatches(allText, optimizePatterns);
+  const test = countMatches(allText, testPatterns);
+  const docs = countMatches(allText, docsPatterns);
+
+  const totalTasks = fix + add + refactor + deleteTask + optimize + test + docs;
+
+  // Determine top task type
+  const tasks = { fix, add, refactor, delete: deleteTask, optimize, test, docs };
+  const topTaskType = totalTasks === 0 ? 'none' : Object.entries(tasks).reduce((a, b) => a[1] > b[1] ? a : b)[0];
+
+  const fixVsAddRatio = add > 0 ? Math.round((fix / add) * 100) / 100 : fix > 0 ? 999 : 0;
+
+  return {
+    fix,
+    add,
+    refactor,
+    delete: deleteTask,
+    optimize,
+    test,
+    docs,
+    totalTasks,
+    topTaskType,
+    fixVsAddRatio
+  };
+}
+
+// Calculate confidence level stats from user messages
+function calculateConfidenceStats(userMessages: Message[]): ConfidenceStats {
+  const allText = userMessages.map(m => m.text).join(' ');
+
+  const uncertain = countMatches(allText, uncertainPatterns);
+  const certain = countMatches(allText, certainPatterns);
+  const exploratory = countMatches(allText, exploratoryPatterns);
+
+  const total = uncertain + certain;
+  const confidenceScore = total > 0 ? Math.round((certain / total) * 100) : 50;
+
+  return {
+    uncertain,
+    certain,
+    exploratory,
+    confidenceScore
+  };
+}
+
+// Calculate communication style stats from user messages
+function calculateCommunicationStats(userMessages: Message[]): CommunicationStats {
+  const allText = userMessages.map(m => m.text).join(' ');
+
+  const polite = countMatches(allText, politePatterns);
+  const direct = countMatches(allText, directPatterns);
+  const collaborative = countMatches(allText, collaborativePatterns);
+
+  const total = polite + direct + collaborative;
+  const politenessScore = total > 0 ? Math.round((polite / total) * 100) : 50;
+  const bossMode = direct;
+  const partnerMode = collaborative;
+
+  return {
+    polite,
+    direct,
+    collaborative,
+    politenessScore,
+    bossMode,
+    partnerMode
+  };
 }
 
 export function analyzeConversations(conversations: Conversation[]): Stats {
@@ -157,13 +642,27 @@ export function analyzeConversations(conversations: Conversation[]): Stats {
   // Pushups
   const pushups = calculatePushupStats(assistantMessages);
 
+  // Keyword-based stats
+  const emotions = calculateEmotionalStats(userMessages);
+  const learning = calculateLearningStats(userMessages);
+  const thinking = calculateThinkingStats(userMessages);
+  const tasks = calculateTaskStats(userMessages);
+  const confidence = calculateConfidenceStats(userMessages);
+  const communication = calculateCommunicationStats(userMessages);
+
   return {
     overview,
     activity,
     conversations: conversationStats,
     time: timeStats,
     engagement,
-    pushups
+    pushups,
+    emotions,
+    learning,
+    thinking,
+    tasks,
+    confidence,
+    communication
   };
 }
 
@@ -292,6 +791,13 @@ function calculateConversationStats(conversations: Conversation[]): Conversation
     epic: lengths.filter(l => l > 50).length
   };
 
+  // One-shot vs multi-shot conversations
+  const oneShotConversations = lengths.filter(l => l <= 2).length;
+  const multiShotConversations = lengths.filter(l => l > 2).length;
+  const oneShotPercentage = conversations.length > 0
+    ? Math.round((oneShotConversations / conversations.length) * 100)
+    : 0;
+
   const multiDayConversations = conversations.filter(c =>
     differenceInDays(c.lastUpdatedAt, c.createdAt) >= 1
   ).length;
@@ -344,6 +850,9 @@ function calculateConversationStats(conversations: Conversation[]): Conversation
       date: new Date(longestConv.createdAt)
     },
     lengthDistribution,
+    oneShotConversations,
+    multiShotConversations,
+    oneShotPercentage,
     multiDayConversations,
     avgTimeBetweenTurns,
     avgSessionDuration,

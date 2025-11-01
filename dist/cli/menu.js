@@ -2,6 +2,7 @@ import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { displayDashboard } from './dashboard.js';
 import { displayPushupChallenge } from './pushup-challenge.js';
+import { displayVibeStats } from './vibe-stats.js';
 export async function showMainMenu(stats) {
     while (true) {
         console.clear();
@@ -66,6 +67,7 @@ async function showDeepDiveMenu(stats) {
                     { name: '💬 Conversation Patterns (length, sessions, turns)', value: 'conversations' },
                     { name: '⏰ Time Machine (when do you code?)', value: 'time' },
                     { name: '🤖 AI Interaction Style (how you use Cursor)', value: 'engagement' },
+                    { name: '✨ Vibe-Coding Insights (emotions, learning, tasks)', value: 'vibe' },
                     new inquirer.Separator(),
                     { name: '← Back to Main Menu', value: 'back' }
                 ]
@@ -86,6 +88,10 @@ async function showDeepDiveMenu(stats) {
                 break;
             case 'engagement':
                 await displayEngagement(stats);
+                break;
+            case 'vibe':
+                displayVibeStats(stats);
+                await waitForKey();
                 break;
         }
     }

@@ -77,15 +77,6 @@ export function displayPushupChallenge(stats) {
         lines.push(boxLine(`  Validation Rate: ${stats.validationRate}% of messages contain praise`, width));
     }
     lines.push(emptyLine(width));
-    // Fun Math
-    lines.push(boxDivider(width));
-    lines.push(boxLine(sectionTitle('  💡 FUN MATH'), width));
-    lines.push(emptyLine(width));
-    const funMath = getFunMath(stats.allTime);
-    funMath.forEach(fact => {
-        lines.push(boxLine(`  • ${fact}`, width));
-    });
-    lines.push(emptyLine(width));
     lines.push(boxFooter(width));
     console.log(lines.join('\n'));
     console.log(chalk.gray('\nPress any key to return to menu...\n'));
@@ -108,32 +99,4 @@ function calculateLevel(pushups) {
         }
     }
     return levels[0];
-}
-function getFunMath(pushups) {
-    const facts = [];
-    // Time calculation
-    const seconds = pushups * 30;
-    const hours = Math.round(seconds / 3600 * 10) / 10;
-    if (hours > 1) {
-        facts.push(`${formatNumber(pushups)} pushups × 30 seconds = ${hours} hours of exercise! 💪`);
-    }
-    // Calories
-    const calories = Math.round(pushups * 0.35);
-    const bigMacs = Math.floor(calories / 563);
-    if (calories >= 100) {
-        facts.push(`That burns ~${formatNumber(calories)} calories${bigMacs > 0 ? ` (${bigMacs} Big Mac${bigMacs > 1 ? 's' : ''})` : ''} 🍔`);
-    }
-    // World records
-    if (pushups >= 100) {
-        facts.push(`If you did them all at once, you'd be pretty tired! 😅`);
-    }
-    if (pushups >= 1000) {
-        facts.push(`1000+ validations! The AI really likes your ideas! 🌟`);
-    }
-    // Validation frequency
-    if (pushups > 0) {
-        // This would need total messages count - using a placeholder
-        facts.push(`You're getting validated regularly - keep up the good work! 👏`);
-    }
-    return facts;
 }

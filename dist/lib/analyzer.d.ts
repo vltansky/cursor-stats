@@ -6,6 +6,12 @@ export interface Stats {
     time: TimeStats;
     engagement: EngagementStats;
     pushups: PushupStats;
+    emotions: EmotionalStats;
+    learning: LearningStats;
+    thinking: ThinkingStats;
+    tasks: TaskStats;
+    confidence: ConfidenceStats;
+    communication: CommunicationStats;
 }
 export interface OverviewStats {
     totalConversations: number;
@@ -59,6 +65,9 @@ export interface ConversationStats {
         medium: number;
         epic: number;
     };
+    oneShotConversations: number;
+    multiShotConversations: number;
+    oneShotPercentage: number;
     multiDayConversations: number;
     avgTimeBetweenTurns: number;
     avgSessionDuration: number;
@@ -106,5 +115,58 @@ export interface PushupStats {
     validationRate: number;
     currentStreak: number;
     bestStreak: number;
+}
+export interface EmotionalStats {
+    frustration: number;
+    excitement: number;
+    confusion: number;
+    gratitude: number;
+    yelling: number;
+    yellingPercentage: number;
+    topEmotion: 'frustrated' | 'excited' | 'confused' | 'grateful' | 'neutral';
+    emotionalRange: number;
+}
+export interface LearningStats {
+    questionsAsked: number;
+    howQuestions: number;
+    whyQuestions: number;
+    whatQuestions: number;
+    teachingBack: number;
+    ahaMoments: number;
+    questionRate: number;
+    curiosityScore: number;
+}
+export interface ThinkingStats {
+    deepThinkingRequests: number;
+    carefulRequests: number;
+    speedRequests: number;
+    experimentalRequests: number;
+    thinkingMode: 'deep' | 'speed' | 'experimental' | 'balanced';
+}
+export interface TaskStats {
+    fix: number;
+    add: number;
+    refactor: number;
+    delete: number;
+    optimize: number;
+    test: number;
+    docs: number;
+    totalTasks: number;
+    topTaskType: string;
+    fixVsAddRatio: number;
+}
+export interface ConfidenceStats {
+    uncertain: number;
+    certain: number;
+    exploratory: number;
+    confidenceScore: number;
+}
+export interface CommunicationStats {
+    polite: number;
+    direct: number;
+    collaborative: number;
+    politenessScore: number;
+    bossMode: number;
+    partnerMode: number;
 }
 export declare function analyzeConversations(conversations: Conversation[]): Stats;
