@@ -15,7 +15,7 @@ An interactive command-line tool that reads your Cursor IDE database and reveals
 
 ## ✨ What is Cursor Stats?
 
-Cursor Stats transforms your Cursor IDE usage data into an **engaging, gamified experience**. It analyzes thousands of conversations and messages to show you not just *what* you coded, but *how* you work with AI.
+Cursor Stats analyzes your AI conversations to reveal how you work with AI.
 
 **Think of it as:**
 - 🎮 **GitHub Wrapped** for Cursor IDE
