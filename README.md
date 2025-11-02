@@ -17,11 +17,6 @@ An interactive command-line tool that reads your Cursor IDE database and reveals
 
 Cursor Stats analyzes your AI conversations to reveal how you work with AI.
 
-**Think of it as:**
-- 🎮 **GitHub Wrapped** for Cursor IDE
-- 📈 **Google Analytics** for your AI usage
-- 🎯 **Spotify Wrapped** meets coding metrics
-
 ---
 
 ## 🚀 Quick Start (Recommended)
