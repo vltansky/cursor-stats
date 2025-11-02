@@ -1,7 +1,6 @@
 # Cursor Stats
 
 <div align="center">
-    <!-- Replace with your screenshot -->
     <img src="docs/screenshot.png" alt="Cursor Stats Dashboard" width="800">
 </div>
 
@@ -9,7 +8,7 @@
 
 An interactive command-line tool that reads your Cursor IDE database and reveals fascinating insights about your AI-assisted coding habits, productivity patterns, and vibe-coding personality.
 
-[![License](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
 
 ---
@@ -311,29 +310,6 @@ Unlock achievements based on your behavior:
 
 ---
 
-## 🤝 Acknowledgments
-
-- Inspired by [wtfutil/wtf](https://github.com/wtfutil/wtf) and similar terminal dashboards
-- Built on the foundation of pushup-cli
-- Makes fun of Claude's habit of being too agreeable 😄
-
----
-
 ## 📝 License
 
-ISC
-
----
-
-## 🎉 Fun Facts
-
-- **Why "Pushup Challenge"?** The idea: every time Claude says "you're absolutely right", you do a pushup. Track those validation phrases like a workout tracker!
-- **Vibe-Coding** is about the *vibe* you bring to coding - your emotions, confidence, communication style
-- **One-shot vs Multi-shot** distinguishes between quick questions and deep collaborative sessions
-- The tool processes **~35,000 messages in under 3 seconds** on modern hardware
-
----
-
-**Made with 💪 and lots of validation phrases**
-
-*Powered by Octocode MCP Research (https://github.com/bgauryy/octocode-mcp) – ⭐ if useful*
+MIT
